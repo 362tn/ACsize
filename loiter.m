@@ -1,6 +1,8 @@
 % loiter input parameter
 % W = W - W_cargo;
 LoiterTime = 3600/2; % Loiter time (s)
+eo = 0.7; % Oswald efficiency factor
+K = 1 / (pi * eo * AR); % Whole airplane K (Quadratic drag coefficient)
 % end loiter input parameter
 
 % You can find the fuel used in (optimal) loiter by plugging LoiterTime
