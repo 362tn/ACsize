@@ -11,5 +11,5 @@ while e(i-1)>=.00000001
     e(i) = abs(vi(i)-vi(i-1));
     i=i+1;
 end
-VI = vi(length(vi));
+VI = vi(end);
 end
