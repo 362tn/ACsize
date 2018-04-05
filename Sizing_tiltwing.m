@@ -11,26 +11,27 @@ clear,clc
     W_FIX = 500;               %Fixed weight in pounds
 
 % ROTOR
-    D_ROT = [10:1:15];          %Rotor diameter in Feet
+    D_ROT = [19];          %Rotor diameter in Feet
     A_ROT_V = (D_ROT./2).^2*pi; %Rotor area in Feet^2 vector
     N_ROT = 4;                  %Number of rotors
 
 % DRAG AND REFERENCE AREA
-    CD_V    = [.02:.005:.03];      %Coefficient of drag c_D0
-    K       = 0.093620554759938;%quadriatic drag coefficient
-    S       = 180;               %Planform area ft^2
+    CD_V    = [.025];      %Coefficient of drag c_D0
+    K       = 1/(pi*1*3);       %quadriatic drag coefficient
+    S       = 144;               %Planform area ft^2
 
 % EFFICIENCIES
-    ERHO_V  = [10:5:45]*.5;        %inverse energy density of batteries vector lb/(hp*hr)
+    ERHO_V = [120];       %Energy density w*hr/kg
+    ERHO_V = 1./(.000608277388.*ERHO_V); %Convert to lb/(hp*hr) for calc
     ETA_M = .95;                %Mechanical efficiency 
     PR_TR = 0;                  %Ratio of tail rotor to main rotor power
     FOM   = .8;                 %Figure of merit
-    F     = 1.02;               %Downwash factor
+    F     = 1.03;               %Downwash factor
 
     
 %% --------------------Mission and atm inputs------------------------------
 % DISTANCE AND TIME
-    RNG_V = [30:10:100];           %Range for legs 4-5 and part of 13-14 (NMi)
+    RNG_V = [30];           %Range for legs 4-5 and part of 13-14 (NMi)
 
     T_LOT = 20/60;          %Time to loiter hour
     T_VTOL= 4/60;           %Hover times hour
@@ -86,7 +87,7 @@ for i=1:D(1) %LOOP FOR 1ST DIMENSION
 
                     %Corrlated weight storage
                     step_i = 1;                
-                    WEIGHT_GTOW(i,j,k,l,l) = GTOW(step_w);            
+                    WEIGHT_GTOW(i,j,k,l) = GTOW(step_w);            
 
     TIME(i,j,k,l,7) = 0.0; %Initialize the time vector
 
@@ -134,10 +135,11 @@ for i=1:D(1) %LOOP FOR 1ST DIMENSION
                     %Determine total fuel burn with fuel line reserve of 6%
                     WEIGHT_BAT(i,j,k,l) = sum(WEIGHT_BAT_S(i,j,k,l,:));
                     %Determine empty weight based on mission calculations
-                    WEIGHT_E(i,j,k,l) = GTOW(step_w) - WEIGHT_BAT(i,j,k,l) - W_FIX;
+                    WEIGHT_E(i,j,k,l) = GTOW(step_w) - WEIGHT_BAT(i,j,k,l)*.75 - W_FIX;
                   %Correlation beteween max weight and empty weight estimation
                     
-                    wt_e_cor = .9527*wt_max^.9295;
+                    %wt_e_cor = 410.49+.666*wt_max;
+                    wt_e_cor = (1-.05)*.9527*wt_max^.9295;
                     %wt_e_cor = .2236*wt_max^1.1697;
                     %wt_e_cor = (1-0)*.8578*wt_max^.9813; %Based on correlation from 11 tilt wing and rotor aircraft
                     %wt_e_cor = .4*wt_max+593.1;
@@ -145,7 +147,7 @@ for i=1:D(1) %LOOP FOR 1ST DIMENSION
 
 
                     %Difference of weights used in secant method above
-                    ERROR(step_w) = WEIGHT_E(i,j,k,l)-wt_e_cor;
+                    ERROR(step_w) = (WEIGHT_E(i,j,k,l)-wt_e_cor);
                     %While loop condition
                     err_w = abs(ERROR(step_w));
 
