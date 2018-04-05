@@ -11,29 +11,29 @@ clear,clc
     W_FIX = 500;               %Fixed weight in pounds
 
 % ROTOR
-    D_ROT = [35:5:65];          %Rotor diameter in Feet
+    D_ROT = [10:1:15];          %Rotor diameter in Feet
     A_ROT_V = (D_ROT./2).^2*pi; %Rotor area in Feet^2 vector
-    N_ROT = 2;                  %Number of rotors
+    N_ROT = 4;                  %Number of rotors
 
 % DRAG AND REFERENCE AREA
-    CD_V    = [.3:.05:.6];      %Coefficient of drag c_D0
+    CD_V    = [.02:.005:.03];      %Coefficient of drag c_D0
     K       = 0.093620554759938;%quadriatic drag coefficient
-    S       = 40;               %Planform area ft^2
+    S       = 180;               %Planform area ft^2
 
 % EFFICIENCIES
-    ERHO_V  = [1.4:.05:1.7];    %ERHO vector lb/(hp*hr)
-    ETA_M = .90;                %Mechanical efficiency 
+    ERHO_V  = [10:5:45]*.5;        %inverse energy density of batteries vector lb/(hp*hr)
+    ETA_M = .95;                %Mechanical efficiency 
     PR_TR = 0;                  %Ratio of tail rotor to main rotor power
-    FOM   = .7;                 %Figure of merit
-    F     = 1.03;               %Downwash factor
+    FOM   = .8;                 %Figure of merit
+    F     = 1.02;               %Downwash factor
 
     
 %% --------------------Mission and atm inputs------------------------------
 % DISTANCE AND TIME
-    RNG_V = [50:10:100];           %Range for legs 4-5 and part of 13-14 (NMi)
+    RNG_V = [30:10:100];           %Range for legs 4-5 and part of 13-14 (NMi)
 
     T_LOT = 20/60;          %Time to loiter hour
-    T_VTOL= 3/60;           %Hover times hour
+    T_VTOL= 4/60;           %Hover times hour
 
 % ATMOSPHERE
     RHO = .002223;          %Air density slug/ft^3
@@ -74,9 +74,9 @@ for i=1:D(1) %LOOP FOR 1ST DIMENSION
                     step_w  = step_w+1;
                     %Secant method to produce new GTOW
                     if step_w ==1
-                        GTOW(step_w) = 6000;   %Initial guess 
+                        GTOW(step_w) = 5000;   %Initial guess 
                     elseif step_w == 2
-                        GTOW(step_w) = 5500;   %Second guess 
+                        GTOW(step_w) = 4500;   %Second guess 
                     else
                         %Calculated for all other steps
                         GTOW(step_w) = GTOW(step_w-1)-ERROR(step_w-1)*...
@@ -92,7 +92,7 @@ for i=1:D(1) %LOOP FOR 1ST DIMENSION
 
     % WARM UP: 1-2
     step_i = 2; %Mission step counter 
-    WEIGHT_BAT_S(i,j,k,l,step_i-1) = WEIGHT_GTOW(i,j,k,l)*.99; %Battery usage in warm up
+    WEIGHT_BAT_S(i,j,k,l,step_i-1) = WEIGHT_GTOW(i,j,k,l)*.01; %Battery usage in warm up
     TIME(i,j,k,l,step_i) = TIME(i,j,k,l,step_i-1) + 10/60; %hours, adds time for warm up -- assumes engine warm up time of 10 minutes
 
     % TAKE OFF: 2-3
@@ -105,16 +105,17 @@ for i=1:D(1) %LOOP FOR 1ST DIMENSION
     % CRUISE: 3-4
     step_i = 4;
     
-    v_cr = sqrt((2*WEIGHT_GTOW(i,j,k,l)/(RHO*S)*sqrt(k/CD)));  %ft/s
-    POWER_R(i,j,k,l,step_i) = .5*RHO*S*CD*v_cr^3+2*k*WEIGHT_GTOW(i,j,k,l)^2/(RHO*S*v_cr)/550; %hp
-    WEIGHT_BAT_S(i,j,k,l,step_i-1) = POWER_R(i,j,k,l,step_i)*ERHO*(RNG*6076.12)/v_cr; %battery weight in lbs
-    V_CRUISE(i,j,k,l) = v_cr*.592484;   %Knot
+    v_cr = sqrt((2*WEIGHT_GTOW(i,j,k,l)/(RHO*S)*sqrt(K/CD)));  %ft/s
+    POWER_R(i,j,k,l,step_i) = (.5*RHO*S*CD*v_cr^3+(2*K*WEIGHT_GTOW(i,j,k,l)^2)/(RHO*S*v_cr))/550; %hp
+    v_cr = v_cr*.592484;
+    WEIGHT_BAT_S(i,j,k,l,step_i-1) = POWER_R(i,j,k,l,step_i)*ERHO*(RNG)/v_cr; %battery weight in lbs
+    V_CRUISE(i,j,k,l) = v_cr;   %Knot
     
     % LOITER: 4-5
     step_i = 5;
 
-    v_en = sqrt((2*WEIGHT_GTOW(i,j,k,l)/(RHO*S)*sqrt(k/(3*CD)))); %ft/s
-    POWER_R(i,j,k,l,step_i) = .5*RHO*S*CD*v_en^3+2*k*WEIGHT_GTOW(i,j,k,l)^2/(RHO*S*v_en)/550; %hp 
+    v_en = sqrt((2*WEIGHT_GTOW(i,j,k,l)/(RHO*S)*sqrt(K/(3*CD)))); %ft/s
+    POWER_R(i,j,k,l,step_i) = (.5*RHO*S*CD*v_en^3+2*K*WEIGHT_GTOW(i,j,k,l)^2/(RHO*S*v_en))/550; %hp 
     WEIGHT_BAT_S(i,j,k,l,step_i-1) = POWER_R(i,j,k,l,step_i)*ERHO*T_LOT; %battery weight in lbs 
     V_LOITER(i,j,k,l) = v_en*.592484;   %Knot
 
@@ -135,8 +136,10 @@ for i=1:D(1) %LOOP FOR 1ST DIMENSION
                     %Determine empty weight based on mission calculations
                     WEIGHT_E(i,j,k,l) = GTOW(step_w) - WEIGHT_BAT(i,j,k,l) - W_FIX;
                   %Correlation beteween max weight and empty weight estimation
-
-                    wt_e_cor = .8578*wt_max^.9813; %Based on correlation from 11 tilt wing and rotor aircraft
+                    
+                    wt_e_cor = .9527*wt_max^.9295;
+                    %wt_e_cor = .2236*wt_max^1.1697;
+                    %wt_e_cor = (1-0)*.8578*wt_max^.9813; %Based on correlation from 11 tilt wing and rotor aircraft
                     %wt_e_cor = .4*wt_max+593.1;
                     %wt_e_cor = .49156*wt_max;%
 
